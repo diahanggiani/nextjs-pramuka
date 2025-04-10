@@ -36,12 +36,11 @@ const SignInForm = () => {
     },
   });
 
-
-
   const onSubmit = async (values: z.infer<typeof FormSchema>) => {
     const signInResult = await signIn('credentials', {
         username: values.username,
-        password: values.password
+        password: values.password,
+        redirect: false
     });
     // console.log("Tes Login : ", signInResult);
     if (signInResult?.ok) {

@@ -1,13 +1,19 @@
-// api untuk lihat & edit profil (all roles)
-
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/auth";
 
+// keperluan testing (nanti dihapus)
+import { getSessionOrToken } from "@/lib/getSessionOrToken";
 
-export async function GET() {
-    const session = await getServerSession(authOptions);
+// handler untuk lihat profile user yang sedang login
+export async function GET(req: NextRequest) {
+    // keperluan testing (nanti dihapus)
+    const session = await getSessionOrToken(req);
+    console.log("SESSION DEBUG:", session);
+
+    // session yang asli (nanti uncomment)
+    // const session = await getServerSession(authOptions);
     
     if (!session) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
@@ -55,8 +61,14 @@ export async function GET() {
     }
 }
 
-export async function PATCH(req: Request) {
-    const session = await getServerSession(authOptions);
+// handler untuk edit profile user yang sedang login
+export async function PATCH(req: NextRequest) {
+    // keperluan testing (nanti dihapus)
+    const session = await getSessionOrToken(req);
+    console.log("SESSION DEBUG:", session);
+
+    // session yang asli (nanti uncomment)
+    // const session = await getServerSession(authOptions);
     
     if (!session) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 403 });

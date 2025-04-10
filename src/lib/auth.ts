@@ -20,6 +20,8 @@ export const authOptions: NextAuthOptions = {
     secret: process.env.NEXTAUTH_SECRET,
     session: {
         strategy: "jwt",
+        maxAge: 60*60,
+        updateAge: 60*60
     },
     pages: {
         signIn: "/login",
@@ -39,6 +41,14 @@ export const authOptions: NextAuthOptions = {
 
                 const existingUser = await prisma.user.findUnique({
                     where: { username: credentials?.username }
+                    // keperluan testing (nanti dihapus)
+                    ,
+                    include: {
+                        kwarcab: true,
+                        kwaran: true,
+                        gugusDepan: true
+                    // batas keperluan testing
+                    }
                 });
                 if(!existingUser) {
                     console.log("User not found");
@@ -55,6 +65,12 @@ export const authOptions: NextAuthOptions = {
                     id: existingUser.id,
                     username: existingUser.username,
                     role: existingUser.role
+                    // keperluan testing (nanti dihapus)
+                    ,
+                    kode_kwarcab: existingUser.kwarcab?.kode_kwarcab || undefined,
+                    kode_kwaran: existingUser.kwaran?.kode_kwaran || undefined,
+                    kode_gusdep: existingUser.gugusDepan?.kode_gusdep || undefined,
+                    // batas keperluan testing
                 }
             }
         })
@@ -65,9 +81,39 @@ export const authOptions: NextAuthOptions = {
             if(user) {
                 return {
                     ...token,
-                    username: user.username
+                    id: user.id,
+                    username: user.username,
+                    role: user.role,
+                    kode_kwarcab: user.kode_kwarcab,
+                    kode_kwaran: user.kode_kwaran,
+                    kode_gusdep: user.kode_gusdep,
                 }
             }
+
+            // keperluan testing (nanti dihapus)
+            else if (token.sub) {
+                const existingUser = await prisma.user.findUnique({
+                    where: { id: token.sub },
+                    select: {
+                        id: true,
+                        username: true,
+                        role: true,
+                        kwarcab: true,
+                        kwaran: true,
+                        gugusDepan: true
+                    }
+                });
+
+                if (existingUser) {
+                    token.id = existingUser.id;
+                    token.username = existingUser.username;
+                    token.role = existingUser.role;
+                    token.kode_kwarcab = existingUser.kwarcab?.kode_kwarcab;
+                    token.kode_kwaran = existingUser.kwaran?.kode_kwaran;
+                    token.kode_gusdep = existingUser.gugusDepan?.kode_gusdep;
+                }
+            } // batas keperluan testing
+
             return token
         },
         async session({ session, token }) {
@@ -76,6 +122,7 @@ export const authOptions: NextAuthOptions = {
                 ...session,
                 user: {
                     ...session.user,
+                    id: token.id,
                     username: token.username,
                     role: token.role,
                     kode_kwarcab: token.kode_kwarcab,

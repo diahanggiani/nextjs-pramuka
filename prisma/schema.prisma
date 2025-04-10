@@ -29,15 +29,25 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // relasi ke masing-masing entitas
-  kwarcab    Kwarcab?
-  kwaran     Kwaran?
-  gugusDepan GugusDepan?
+  // relasi ke entitas yang memiliki user
+  kwarcab    Kwarcab?    @relation("KwarcabToUser")
+  kwaran     Kwaran?     @relation("KwaranToUser")
+  gugusDepan GugusDepan? @relation("GusdepToUser")
+
+  // user pembuat
+  createdBy    User?   @relation("UserCreatedBy", fields: [createdById], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  createdById  String?
+  createdUsers User[]  @relation("UserCreatedBy")
+
+  // entitas yang dibuat user ini
+  createdKwarcab    Kwarcab[]    @relation("CreatedKwarcab")
+  createdKwaran     Kwaran[]     @relation("CreatedKwaran")
+  createdGugusDepan GugusDepan[] @relation("CreatedGugusDepan")
 }
 
 model Kwarcab {
   kode_kwarcab   String  @id
-  nama_kwarcab   String
+  nama_kwarcab   String  @unique
   alamat         String?
   kepala_kwarcab String?
   foto_kwarcab   String? @db.Text
@@ -47,12 +57,15 @@ model Kwarcab {
   kwaran   Kwaran[]
 
   userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user   User?   @relation("KwarcabToUser", fields: [userId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CreatedKwarcab", fields: [createdById], references: [id], onUpdate: Cascade, onDelete: SetNull)
 }
 
 model Kwaran {
   kode_kwaran   String  @id
-  nama_kwaran   String
+  nama_kwaran   String  @unique
   alamat        String?
   kepala_kwaran String?
   foto_kwaran   String? @db.Text
@@ -64,12 +77,15 @@ model Kwaran {
   kwarcab     Kwarcab @relation(fields: [kwarcabKode], references: [kode_kwarcab], onUpdate: Cascade, onDelete: Cascade)
 
   userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user   User?   @relation("KwaranToUser", fields: [userId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CreatedKwaran", fields: [createdById], references: [id], onUpdate: Cascade, onDelete: SetNull)
 }
 
 model GugusDepan {
   kode_gusdep    String  @id
-  nama_gusdep    String
+  nama_gusdep    String  @unique
   npsn           String? @unique
   nama_sekolah   String?
   alamat         String?
@@ -81,11 +97,14 @@ model GugusDepan {
   kegiatan Kegiatan[]
   ajuan    Ajuan[]
 
-  kwaranKode String
-  kwaran     Kwaran @relation(fields: [kwaranKode], references: [kode_kwaran], onUpdate: Cascade, onDelete: Cascade)
+  kwaranKode String?
+  kwaran     Kwaran? @relation(fields: [kwaranKode], references: [kode_kwaran], onUpdate: Cascade, onDelete: Cascade)
 
   userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user   User?   @relation("GusdepToUser", fields: [userId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CreatedGugusDepan", fields: [createdById], references: [id], onUpdate: Cascade, onDelete: SetNull)
 }
 
 model Anggota {

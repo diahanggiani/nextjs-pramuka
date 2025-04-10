@@ -15,9 +15,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     // session yang asli (nanti uncomment)
     // const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role == "USER_SUPERADMIN") {
-        return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can delete account" }, { status: 403 });
+
+    if (!session || session.user.role !== "USER_SUPERADMIN") {
+        return NextResponse.json({ message: "Unauthorized: Only 'Superadmin' users can delete account" }, { status: 403 });
     }
 
     try {
@@ -51,11 +51,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
         // cek hierarki role
         const canDelete = (
-            // kwarcab dapat menghapus akun role kwaran yang berada di bawah naungannya
-            (session.user.role === Role.USER_KWARCAB && targetUser.role === Role.USER_KWARAN && targetUser.kwaran?.kwarcabKode === session.user.kode_kwarcab)
-            ||
-            // kwaran dapat menghapus akun role gusdep yang berada di bawah naungannya
-            (session.user.role === Role.USER_KWARAN && targetUser.role === Role.USER_GUSDEP && targetUser.gugusDepan?.kwaranKode === session.user.kode_kwaran)
+            // superadmin dapat menghapus akun role manapun
+            (session.user.role === Role.USER_SUPERADMIN && (
+                targetUser.role === Role.USER_KWARCAB ||
+                targetUser.role === Role.USER_KWARAN ||
+                targetUser.role === Role.USER_GUSDEP
+            ))
         );
 
         if (!canDelete) {
