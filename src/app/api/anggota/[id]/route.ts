@@ -2,12 +2,13 @@ import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { isValidEnum } from "@/lib/helpers/enumValidator";
 
 // keperluan testing (nanti dihapus)
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
 
 // handler untuk tambah data anggota oleh role gusdep
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
     console.log("SESSION DEBUG:", session);
@@ -19,12 +20,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ message: "Unauthorized: Only 'Gugus Depan' users edit add member" }, { status: 403 });
     }
 
+    // id anggota dari parameter url
+    const { id } = await context.params;
+
     try {
         const body = await req.json();
         const user = session.user as { id: string; role: string; kode_gusdep: string };
-
-        // id anggota dari parameter url
-        const { id } = params;
 
         // ambil data anggota berdasarkan id
         const anggota = await prisma.anggota.findUnique({
@@ -49,6 +50,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             }
         }
 
+        // validasi enum
+        const { gender, agama, status_agt, jenjang_agt } = body;
+        
+        if (gender && !isValidEnum("Gender", gender)) {
+            return NextResponse.json({ message: "Invalid gender" }, { status: 400 });
+        }
+        if (agama && !isValidEnum("Agama", agama)) {
+            return NextResponse.json({ message: "Invalid agama" }, { status: 400 });
+        }
+        if (status_agt && !isValidEnum("StatusKeaktifan", status_agt)) {
+            return NextResponse.json({ message: "Invalid status keaktifan" }, { status: 400 });
+        }
+        if (jenjang_agt && !isValidEnum("JenjangAnggota", jenjang_agt)) {
+            return NextResponse.json({ message: "Invalid jenjang anggota" }, { status: 400 });
+        }
+
         // update data anggota hanya jika field ada dalam request body
         const updatedAnggota = await prisma.anggota.update({
             where: { id_anggota: id },
@@ -66,12 +83,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
         return NextResponse.json({ message: "Member successfully updated", data: updatedAnggota }, { status: 200 });
     } catch (error) {
-        return NextResponse.json({ message: "Internal Server Error", error }, { status: 500 });
+        console.error("Error adding data:", error);
+        return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
 }
 
 // handler untuk hapus data anggota oleh role gusdep
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
     console.log("SESSION DEBUG:", session);
@@ -84,7 +102,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     const user = session.user as { id: string; role: string; kode_gusdep: string };
-    const { id } = params;
+    const { id } = await context.params;
 
     try {
         // ambil data anggota berdasarkan id
@@ -107,6 +125,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         return NextResponse.json({ message: "Member successfully deleted" }, { status: 200 });
     } catch (error) {
         console.error("DELETE error:", error);
-        return NextResponse.json({ message: "Internal Server Error", error }, { status: 500 });
+        return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
 }

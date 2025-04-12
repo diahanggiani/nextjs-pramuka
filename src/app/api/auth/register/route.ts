@@ -1,5 +1,3 @@
-// register role superadmin
-
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { hash } from "bcrypt";

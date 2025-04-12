@@ -40,15 +40,24 @@ export const authOptions: NextAuthOptions = {
                 }
 
                 const existingUser = await prisma.user.findUnique({
-                    where: { username: credentials?.username }
+                    where: { username: credentials?.username },
                     // keperluan testing (nanti dihapus)
-                    ,
                     include: {
                         kwarcab: true,
                         kwaran: true,
                         gugusDepan: true
                     // batas keperluan testing
                     }
+
+                    // select: {
+                    //     id: true,
+                    //     username: true,
+                    //     password: true,
+                    //     role: true,
+                    //     kwarcab: { select: { kode_kwarcab: true } },
+                    //     kwaran: { select: { kode_kwaran: true } },
+                    //     gugusDepan: { select: { kode_gusdep: true } }
+                    // }
                 });
                 if(!existingUser) {
                     console.log("User not found");
@@ -64,9 +73,8 @@ export const authOptions: NextAuthOptions = {
                 return {
                     id: existingUser.id,
                     username: existingUser.username,
-                    role: existingUser.role
+                    role: existingUser.role,
                     // keperluan testing (nanti dihapus)
-                    ,
                     kode_kwarcab: existingUser.kwarcab?.kode_kwarcab || undefined,
                     kode_kwaran: existingUser.kwaran?.kode_kwaran || undefined,
                     kode_gusdep: existingUser.gugusDepan?.kode_gusdep || undefined,

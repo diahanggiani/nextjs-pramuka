@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -143,12 +137,12 @@ model Kegiatan {
   tingkat_kegiatan Tingkat
   laporan          String       @db.Text
   tanggal          DateTime
-  gusdepKode       String
-  gugusDepan       GugusDepan   @relation(fields: [gusdepKode], references: [kode_gusdep], onUpdate: Cascade, onDelete: Cascade)
-  kwaranKode       String
-  kwaran           Kwaran       @relation(fields: [kwaranKode], references: [kode_kwaran], onUpdate: Cascade, onDelete: Cascade)
-  kwarcabKode      String
-  kwarcab          Kwarcab      @relation(fields: [kwarcabKode], references: [kode_kwarcab], onUpdate: Cascade, onDelete: Cascade)
+  gusdepKode       String?
+  gugusDepan       GugusDepan?  @relation(fields: [gusdepKode], references: [kode_gusdep], onUpdate: Cascade, onDelete: Cascade)
+  kwaranKode       String?
+  kwaran           Kwaran?      @relation(fields: [kwaranKode], references: [kode_kwaran], onUpdate: Cascade, onDelete: Cascade)
+  kwarcabKode      String?
+  kwarcab          Kwarcab?     @relation(fields: [kwarcabKode], references: [kode_kwarcab], onUpdate: Cascade, onDelete: Cascade)
   partisipan       Partisipan[]
 }
 

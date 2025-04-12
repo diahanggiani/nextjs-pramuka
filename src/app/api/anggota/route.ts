@@ -3,18 +3,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getGusdepKodeByRegion } from "@/lib/helpers/getGusdep";
+import { isValidEnum } from "@/lib/helpers/enumValidator";
 
 // keperluan testing (nanti dihapus)
-// import { getSessionOrToken } from "@/lib/getSessionOrToken";
+import { getSessionOrToken } from "@/lib/getSessionOrToken";
 
 // handler untuk tambah data anggota oleh role gusdep
 export async function POST (req: NextRequest) {
     // keperluan testing (nanti dihapus)
-    // const session = await getSessionOrToken(req);
-    // console.log("SESSION DEBUG:", session);
+    const session = await getSessionOrToken(req);
+    console.log("SESSION DEBUG:", session);
 
     // session yang asli (nanti uncomment)
-    const session = await getServerSession(authOptions);
+    // const session = await getServerSession(authOptions);
     
     if (!session || session.user.role !== "USER_GUSDEP") {
         return NextResponse.json({ message: "Unauthorized: Only 'Gugus Depan' users can add member" }, { status: 403 });
@@ -22,13 +23,26 @@ export async function POST (req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { nama_agt, nta, tgl_lahir, alamat, gender, agama, jenjang_agt, status_agt } = body;
+        const { tgl_lahir, gender, agama, jenjang_agt, status_agt } = body;
+        const nama_agt = body.nama_agt?.trim(), nta = body.nta?.trim(), alamat = body.alamat?.trim();
 
         if (!nama_agt || !nta || !tgl_lahir || !alamat || !gender || !agama || !jenjang_agt || !status_agt ) {
             return NextResponse.json({ message: "All fields are required" }, { status: 400 });
         }
 
-        // ga perlu validasi enum ga sih? soalnya dropdown di front valuenya udah pasti
+        // validasi enum
+        if (!isValidEnum("Gender", gender)) {
+            return NextResponse.json({ message: "Invalid gender" }, { status: 400 });
+        }
+        if (!isValidEnum("Agama", agama)) {
+            return NextResponse.json({ message: "Invalid agama" }, { status: 400 });
+        }
+        if (!isValidEnum("StatusKeaktifan", status_agt)) {
+            return NextResponse.json({ message: "Invalid status keaktifan" }, { status: 400 });
+        }
+        if (!isValidEnum("JenjangAnggota", jenjang_agt)) {
+            return NextResponse.json({ message: "Invalid jenjang anggota" }, { status: 400 });
+        }
 
         const existingAnggota = await prisma.anggota.findUnique({ where: { nta } });
         if (existingAnggota) {
@@ -56,16 +70,46 @@ export async function POST (req: NextRequest) {
 
 // handler untuk lihat data anggota (all roles with access restrictions)
 export async function GET(req: NextRequest) {
-    try {
-        // keperluan testing (nanti dihapus)
-        // const session = await getSessionOrToken(req);
-        // console.log("SESSION DEBUG:", session);
+    // keperluan testing (nanti dihapus)
+    const session = await getSessionOrToken(req);
+    console.log("SESSION DEBUG:", session);
 
-        // session yang asli (nanti uncomment)
-        const session = await getServerSession(authOptions);
-        
-        if (!session || session.user.role == "USER_SUPERADMIN") {
-            return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can retrieve members" }, { status: 403 });
+    // session yang asli (nanti uncomment)
+    // const session = await getServerSession(authOptions);
+    
+    if (!session || session.user.role === "USER_SUPERADMIN") {
+        return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can retrieve members" }, { status: 403 });
+    }
+
+    try {
+        // ambil kode_gusdep dari query string (jika ada)
+        const { searchParams } = new URL(req.url);
+        const kode_gusdep = searchParams.get("kode_gusdep");
+        if (kode_gusdep) {
+            let allowed = false;
+
+            // Cek akses berdasarkan role
+            if (session.user.role === "USER_GUSDEP") {
+                allowed = session.user.kode_gusdep === kode_gusdep;
+            } else if (session.user.role === "USER_KWARAN") {
+                const gusdepKodeList = await getGusdepKodeByRegion(session.user.kode_kwaran!, true);
+                allowed = gusdepKodeList.includes(kode_gusdep);
+            } else if (session.user.role === "USER_KWARCAB") {
+                const gusdepKodeList = await getGusdepKodeByRegion(session.user.kode_kwarcab!, false);
+                allowed = gusdepKodeList.includes(kode_gusdep);
+            }
+
+            if (!allowed) {
+                return NextResponse.json({ message: "Forbidden: Anda tidak punya akses ke gugus depan ini" }, { status: 403 });
+            }
+
+            // ambil anggota berdasarkan kode_gusdep
+            const anggota = await prisma.anggota.findMany({
+                where: { gusdepKode: kode_gusdep },
+                include: { gugusDepan: { select: { nama_gusdep: true } } },
+            });
+
+            return NextResponse.json(anggota);
         }
 
         let anggota;
@@ -118,6 +162,7 @@ export async function GET(req: NextRequest) {
         console.log(`Role: ${session.user.role} | Total members found: ${anggota.length}`);
         return NextResponse.json(anggota);
     } catch (error) {
-        return NextResponse.json({ message: "Internal Server Error", error }, { status: 500 });
+        console.error("Error retrieving data:", error);
+        return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
 }

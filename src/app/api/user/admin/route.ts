@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { username, password, role, nama, kode, kode_kwaran, kode_kwarcab } = body;
+        const { username, password, role } = body;
+        const nama = body.nama?.trim(), kode = body.kode?.trim(), kode_kwaran = body.kode_kwaran?.trim(), kode_kwarcab = body.kode_kwarcab?.trim();
 
         if (!username || !password || !role || !nama || !kode) {
             return NextResponse.json({ message: "All fields are required" }, { status: 400 });

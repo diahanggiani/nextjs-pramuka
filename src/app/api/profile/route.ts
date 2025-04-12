@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/auth";
+import supabase from '@/lib/supabase';
+import path from 'path';
+import { randomUUID } from 'crypto';
 
 // keperluan testing (nanti dihapus)
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
@@ -15,8 +18,8 @@ export async function GET(req: NextRequest) {
     // session yang asli (nanti uncomment)
     // const session = await getServerSession(authOptions);
     
-    if (!session) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    if (!session || session.user.role === "USER_SUPERADMIN") {
+        return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can see profile" }, { status: 403 });
     }
 
     try {
@@ -57,7 +60,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(profile, { status: 200 });
 
     } catch (error) {
-        return NextResponse.json({ message: 'Internal Server Error', error }, { status: 500 });
+        console.error("Error retrieving data:", error);
+        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
     }
 }
 
@@ -70,58 +74,109 @@ export async function PATCH(req: NextRequest) {
     // session yang asli (nanti uncomment)
     // const session = await getServerSession(authOptions);
     
-    if (!session) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    if (!session || session.user.role === "USER_SUPERADMIN") {
+        return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can edit profile" }, { status: 403 });
     }
 
     try {
-        const body = await req.json();
-
-        let updateData;
-        let updatedProfile;
+        const formData = await req.formData();
         
-        if (session.user.role === 'USER_GUSDEP') {
-        updateData = {
-            npsn: body.npsn?.trim(),
-            nama_sekolah: body.nama_sekolah?.trim(),
-            alamat: body.alamat?.trim(),
-            kepala_sekolah: body.kepala_sekolah?.trim(),
-            foto_gusdep: body.foto_gusdep?.trim(),
-        };
-        updatedProfile = await prisma.gugusDepan.update({
-            where: { kode_gusdep: session.user.kode_gusdep },
-            data: updateData,
-        });
-        } else if (session.user.role === 'USER_KWARAN') {
-        updateData = {
-            alamat: body.alamat?.trim(),
-            kepala_kwaran: body.kepala_kwaran?.trim(),
-            foto_kwaran: body.foto_kwaran?.trim(),
-        };
-        updatedProfile = await prisma.kwaran.update({
-            where: { kode_kwaran: session.user.kode_kwaran },
-            data: updateData,
-        });
-        } else if (session.user.role === 'USER_KWARCAB') {
-        updateData = {
-            alamat: body.alamat?.trim(),
-            kepala_kwarcab: body.kepala_kwarcab?.trim(),
-            foto_kwarcab: body.foto_kwarcab?.trim(),
-        };
-        updatedProfile = await prisma.kwarcab.update({
-            where: { kode_kwarcab: session.user.kode_kwarcab },
-            data: updateData,
-        });
-        } else {
-        return NextResponse.json({ message: 'Role not recognized' }, { status: 403 });
+        const alamat = formData.get("alamat")?.toString().trim();
+        const nama_sekolah = formData.get("nama_sekolah")?.toString().trim();
+        const npsn = formData.get("npsn")?.toString().trim();
+
+        const kepala_sekolah = formData.get("kepala_sekolah")?.toString().trim();
+        const kepala_kwaran = formData.get("kepala_kwaran")?.toString().trim();
+        const kepala_kwarcab = formData.get("kepala_kwarcab")?.toString().trim();
+
+        const foto = formData.get("foto") as File | null;
+
+        const role = session.user.role;
+        let newFotoUrl: string | undefined = undefined;
+
+        if (foto && foto.size === 0) {
+            console.log("FOTO SIZE:", foto?.size);
+
+            // validasi file
+            if (!["image/jpeg", "image/png", "image/jpg"].includes(foto.type)) {
+                return NextResponse.json({ message: "Only JPG, JPEG, or PNG files are allowed" }, { status: 400 });
+            }
+
+            const buffer = Buffer.from(await foto.arrayBuffer());
+            const maxSize = 500 * 1024;
+            if (buffer.length > maxSize) {
+                return NextResponse.json({ message: "File size must be less than 500KB" }, { status: 400 });
+            }
+
+            const ext = path.extname(foto.name) || ".jpg" || ".jpeg" || ".png";
+            const filename = `${randomUUID()}${ext}`;
+            const storagePath = `foto-profil/${filename}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from("image-bucket-nextjs")
+                .upload(storagePath, buffer, {
+                    contentType: foto.type,
+                    upsert: false,
+                });
+
+            if (uploadError) {
+                return NextResponse.json({ message: "Failed to upload photo", error: uploadError }, { status: 500 });
+            }
+
+            const { data: publicUrlData } = supabase.storage
+                .from("image-bucket-nextjs")
+                .getPublicUrl(storagePath);
+
+            newFotoUrl = publicUrlData?.publicUrl;
+            console.log("Public URL:", newFotoUrl);
         }
 
-        return NextResponse.json({
-        message: 'Profile updated successfully',
-        profile: updatedProfile,
-        }, { status: 200 });
+        let updated;
 
+        if (role === 'USER_GUSDEP') {
+            const updateData = {
+                alamat,
+                npsn,
+                nama_sekolah,
+                kepala_sekolah,
+                ...(newFotoUrl && { foto_gusdep: newFotoUrl }),
+            };
+
+            updated = await prisma.gugusDepan.update({
+                where: { kode_gusdep: session.user.kode_gusdep },
+                data: updateData,
+            });
+
+        } else if (role === 'USER_KWARAN') {
+            const updateData = {
+                alamat,
+                kepala_kwaran,
+                ...(newFotoUrl && { foto_kwaran: newFotoUrl }),
+            };
+        
+            updated = await prisma.kwaran.update({
+                where: { kode_kwaran: session.user.kode_kwaran },
+                data: updateData,
+            });
+
+        } else if (role === 'USER_KWARCAB') {
+            const updateData = {
+                alamat,
+                kepala_kwarcab,
+                ...(newFotoUrl && { foto_kwarcab: newFotoUrl }),
+            };
+        
+            updated = await prisma.kwarcab.update({
+                where: { kode_kwarcab: session.user.kode_kwarcab },
+                data: updateData,
+            });
+        } else {
+            return NextResponse.json({ message: 'Role not recognized' }, { status: 403 });
+        }
+
+        return NextResponse.json({ message: 'Profile updated successfully', profile: updated }, { status: 200 });
     } catch (error) {
-        return NextResponse.json({ message: 'Internal Server Error', error }, { status: 500 });
+        console.error("Error updating data:", error);
+        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
     }
 }

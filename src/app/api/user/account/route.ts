@@ -17,13 +17,14 @@ export async function POST(req: NextRequest) {
     // session yang asli (nanti uncomment)
     // const session = await getServerSession(authOptions);
     
-    if (!session || session.user.role == "USER_SUPERADMIN") {
+    if (!session || session.user.role === "USER_SUPERADMIN") {
         return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can create account" }, { status: 403 });
     }
 
     try {
         const body = await req.json();
-        const { username, password, nama, kode } = body;
+        const { username, password } = body;
+        const nama = body.nama?.trim(), kode = body.kode?.trim();
 
         if (!username || !password || !nama ||!kode) {
             return NextResponse.json({ message: 'All fields are required' }, { status: 400 });
@@ -133,7 +134,7 @@ export async function GET(req: NextRequest) {
     // session yang asli (nanti uncomment)
     // const session = await getServerSession(authOptions);
     
-    if (!session || session.user.role == "USER_SUPERADMIN") {
+    if (!session || session.user.role === "USER_SUPERADMIN") {
         return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can retrieve accounts" }, { status: 403 });
     }
 

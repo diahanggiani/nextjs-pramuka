@@ -114,3 +114,18 @@ fungsinya:
 - ⚠️ Cascade: semua entitas relasi ikut terhapus
 - (default/tidak menulis onDelete/hanya menulis onUpdate): restrict → gagal hapus kalau masih dipakai (error)
 - ✅ SetNull: aman → relasi jadi null, entitas tetap aman
+
+**apa itu (!!) dalam javascript dan typescript?**
+
+- !! adalah shorthand untuk mengubah nilai apa pun menjadi tipe boolean (true atau false)
+
+```
+!!"hello"         // true, karena string non-kosong
+!!""              // false, karena string kosong
+!!0               // false
+!!1               // true
+!!null            // false
+!!undefined       // false
+!![]              // true (array dianggap truthy)
+!!{}              // true (object juga truthy)
+```

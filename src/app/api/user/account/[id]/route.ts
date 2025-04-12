@@ -16,7 +16,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     // session yang asli (nanti uncomment)
     // const session = await getServerSession(authOptions);
     
-    if (!session || session.user.role == "USER_SUPERADMIN") {
+    if (!session || session.user.role === "USER_SUPERADMIN") {
         return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can delete account" }, { status: 403 });
     }
 
