@@ -72,12 +72,13 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
             data: {
                 ...(body.nama_agt?.trim() && { nama_agt: body.nama_agt.trim() }),
                 ...(body.nta?.trim() && { nta: body.nta.trim() }),
-                ...(body.tgl_lahir && { tgl_lahir: new Date(body.tgl_lahir) }),
                 ...(body.alamat?.trim() && { alamat: body.alamat.trim() }),
+                ...(body.tgl_lahir && { tgl_lahir: new Date(body.tgl_lahir) }),
                 ...(body.gender && { gender: body.gender }),
                 ...(body.agama && { agama: body.agama }),
                 ...(body.jenjang_agt && { jenjang_agt: body.jenjang_agt }),
                 ...(body.status_agt && { status_agt: body.status_agt }),
+                ...(body.tahun_gabung && !isNaN(parseInt(body.tahun_gabung)) && { tahun_gabung: parseInt(body.tahun_gabung) }),
             },
         });
 

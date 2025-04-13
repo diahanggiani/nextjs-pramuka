@@ -1,4 +1,0 @@
--- AlterTable
-ALTER TABLE "Kegiatan" ALTER COLUMN "gusdepKode" DROP NOT NULL,
-ALTER COLUMN "kwaranKode" DROP NOT NULL,
-ALTER COLUMN "kwarcabKode" DROP NOT NULL;

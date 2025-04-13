@@ -7,6 +7,7 @@ import { randomUUID } from "crypto";
 import { isValidEnum } from "@/lib/helpers/enumValidator";
 import { Ajuan } from "@prisma/client";
 import path from "path";
+import { generateAjuanWhereClause } from "@/lib/helpers/queryClause";
 
 // keperluan testing (nanti dihapus)
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
@@ -29,6 +30,26 @@ export async function POST(req: NextRequest) {
         const nama_ajuan = formData.get("nama_ajuan")?.toString().trim();
         const tingkat = formData.get("tingkat")?.toString().trim();
         const file = formData.get("formulir") as File;
+
+        // Query untuk mencari kode_kwarcab berdasarkan kode_gusdep
+        const gusdep = await prisma.gugusDepan.findUnique({
+            where: { kode_gusdep: session.user.kode_gusdep },
+            include: {
+                kwaran: {
+                    include: {
+                        kwarcab: true,
+                    },
+                },
+            },
+        });
+
+        
+        // Pastikan kode_kwarcab ditemukan
+        const kode_kwarcab = gusdep?.kwaran?.kwarcab?.kode_kwarcab;
+
+        if (!kode_kwarcab) {
+            return NextResponse.json({ error: "Kode kwarcab tidak ditemukan" }, { status: 400 });
+        }
 
         // validasi input
         if (!nama_ajuan || !tingkat || !file) {
@@ -77,17 +98,28 @@ export async function POST(req: NextRequest) {
 
         const url = publicUrlData?.publicUrl;
 
-        // simpan data ajuan
+        // // simpan data ajuan
+        // const newAjuan = await prisma.ajuan.create({
+        //     data: {
+        //         nama_ajuan,
+        //         tingkat,
+        //         formulir: url,
+        //         gusdepKode: session.user.kode_gusdep!,
+        //         kwarcabKode: session.user.kode_kwarcab!,
+        //     },
+        // });
+
+        // Simpan data ajuan
         const newAjuan = await prisma.ajuan.create({
             data: {
                 nama_ajuan,
                 tingkat,
                 formulir: url,
-                gusdepKode: session.user.kode_gusdep!,
-                kwarcabKode: session.user.kode_kwarcab!,
+                gusdepKode: session.user.kode_gusdep!,// Mendapatkan kode_gusdep dari session
+                kwarcabKode: kode_kwarcab, // Menggunakan kode_kwarcab yang ditemukan
             },
         });
-
+          
         return NextResponse.json({ message: "Ajuan successfully added", newAjuan}, { status: 200 });
     } catch (error) {
         console.error("Error submiting form:", error);
@@ -109,18 +141,29 @@ export async function GET(req: NextRequest) {
     }
 
     try {
+        const { searchParams } = new URL(req.url);
+        const statusFilter = searchParams.get("status") as "DITERIMA" | "DITOLAK" | "MENUNGGU" | null;
+        const searchQuery = searchParams.get("search") || undefined;
+
         let ajuanList: Ajuan[] = [];
 
         if (session.user.role === "USER_GUSDEP") {
+            const whereClause = generateAjuanWhereClause({ gusdepKode: session.user.kode_gusdep }, statusFilter || undefined, searchQuery);
+            
             // hanya lihat ajuan milik sendiri
             ajuanList = await prisma.ajuan.findMany({
-                where: { gusdepKode: session.user.kode_gusdep },
+                // where: { gusdepKode: session.user.kode_gusdep },
+                where: whereClause,
                 orderBy: { createdAt: "desc" },
             });
+
         } else if (session.user.role === "USER_KWARCAB") {
+            const whereClause = generateAjuanWhereClause({ kwarcabKode: session.user.kode_kwarcab },statusFilter || undefined,searchQuery);
+
             // lihat semua ajuan dalam kwarcab
             ajuanList = await prisma.ajuan.findMany({
-                where: { kwarcabKode: session.user.kode_kwarcab },
+                // where: { kwarcabKode: session.user.kode_kwarcab },
+                where: whereClause,
                 orderBy: { createdAt: "desc" },
             });
         }

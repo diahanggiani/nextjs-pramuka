@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
             select: {
                 kode_kwaran: true,
                 nama_kwaran: true,
+                alamat: true
             },
         });
 

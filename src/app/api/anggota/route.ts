@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getGusdepKodeByRegion } from "@/lib/helpers/getGusdep";
 import { isValidEnum } from "@/lib/helpers/enumValidator";
+import { generateWhereClause } from "@/lib/helpers/queryClause";
 
 // keperluan testing (nanti dihapus)
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
@@ -23,10 +24,10 @@ export async function POST (req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { tgl_lahir, gender, agama, jenjang_agt, status_agt } = body;
+        const { tgl_lahir, gender, agama, jenjang_agt, status_agt, tahun_gabung } = body;
         const nama_agt = body.nama_agt?.trim(), nta = body.nta?.trim(), alamat = body.alamat?.trim();
 
-        if (!nama_agt || !nta || !tgl_lahir || !alamat || !gender || !agama || !jenjang_agt || !status_agt ) {
+        if (!nama_agt || !nta || !tgl_lahir || !alamat || !gender || !agama || !jenjang_agt || !status_agt || !tahun_gabung ) {
             return NextResponse.json({ message: "All fields are required" }, { status: 400 });
         }
 
@@ -55,9 +56,20 @@ export async function POST (req: NextRequest) {
 
         const anggota = await prisma.anggota.create({
             data: {
-                ...body, // object spread syntax: ambil semua properti dari objek body, dan masukkan ke dalam objek baru di situ (responsenya tetap sama)
-                tgl_lahir: new Date(body.tgl_lahir),
-                gusdepKode: session.user.kode_gusdep,
+                // ...body, // object spread syntax: ambil semua properti dari objek body, dan masukkan ke dalam objek baru di situ (responsenya tetap sama)
+                // tgl_lahir: new Date(body.tgl_lahir),
+                // gusdepKode: session.user.kode_gusdep,
+
+                nama_agt,
+                nta,
+                alamat,
+                tgl_lahir: new Date(tgl_lahir),
+                gender,
+                agama,
+                jenjang_agt,
+                status_agt,
+                tahun_gabung: parseInt(tahun_gabung),
+                gusdepKode: session.user.kode_gusdep
             },
         });
 
@@ -85,10 +97,14 @@ export async function GET(req: NextRequest) {
         // ambil kode_gusdep dari query string (jika ada)
         const { searchParams } = new URL(req.url);
         const kode_gusdep = searchParams.get("kode_gusdep");
+
+        const statusFilter = searchParams.get("status");
+        const searchQuery = searchParams.get("search") || undefined;
+        
         if (kode_gusdep) {
             let allowed = false;
 
-            // Cek akses berdasarkan role
+            // cek akses berdasarkan role
             if (session.user.role === "USER_GUSDEP") {
                 allowed = session.user.kode_gusdep === kode_gusdep;
             } else if (session.user.role === "USER_KWARAN") {
@@ -103,9 +119,13 @@ export async function GET(req: NextRequest) {
                 return NextResponse.json({ message: "Forbidden: Anda tidak punya akses ke gugus depan ini" }, { status: 403 });
             }
 
+            // Bangun klausa where berdasarkan status dan query
+            const whereClause = generateWhereClause({ gusdepKode: kode_gusdep }, statusFilter as "AKTIF" | "NON_AKTIF", searchQuery);
+
             // ambil anggota berdasarkan kode_gusdep
             const anggota = await prisma.anggota.findMany({
-                where: { gusdepKode: kode_gusdep },
+                // where: { gusdepKode: kode_gusdep },
+                where: whereClause,
                 include: { gugusDepan: { select: { nama_gusdep: true } } },
             });
 
@@ -116,8 +136,10 @@ export async function GET(req: NextRequest) {
 
         // gugus depan hanya bisa melihat anggotanya sendiri
         if (session.user.role === "USER_GUSDEP") {
+            const whereClause = generateWhereClause({ gusdepKode: session.user.kode_gusdep }, statusFilter as "AKTIF" | "NON_AKTIF", searchQuery);
             anggota = await prisma.anggota.findMany({
-                where: { gusdepKode: session.user.kode_gusdep },
+                // where: { gusdepKode: session.user.kode_gusdep },
+                where: whereClause,
                 include: { gugusDepan: { select: { nama_gusdep: true } } },
             });
 
@@ -127,14 +149,15 @@ export async function GET(req: NextRequest) {
                 return NextResponse.json({ message: "Kode kwaran tidak ditemukan di session" }, { status: 400 });
             }
             const gusdepKodeList = await getGusdepKodeByRegion(session.user.kode_kwaran, true);
-            
             if (gusdepKodeList.length === 0) {
                 console.log(`There are no Gugus Depan registered under Kwaran ${session.user.kode_kwaran}`);
                 return NextResponse.json([]);
             }
 
+            const whereClause = generateWhereClause({ gusdepKode: { in: gusdepKodeList } }, statusFilter as "AKTIF" | "NON_AKTIF", searchQuery);
             anggota = await prisma.anggota.findMany({
-                where: { gusdepKode: { in: gusdepKodeList } },
+                // where: { gusdepKode: { in: gusdepKodeList } },
+                where: whereClause,
                 include: { gugusDepan: { select: { nama_gusdep: true } } },
             });
 
@@ -144,14 +167,15 @@ export async function GET(req: NextRequest) {
                 return NextResponse.json({ message: "Kode kwarcab tidak ditemukan di session" }, { status: 400 });
             }
             const gusdepKodeList = await getGusdepKodeByRegion(session.user.kode_kwarcab, false);
-            
             if (gusdepKodeList.length === 0) {
                 console.log(`There are no Gugus Depan registered under Kwarcab ${session.user.kode_kwarcab}`);
                 return NextResponse.json([]);
             }
             
+            const whereClause = generateWhereClause({ gusdepKode: { in: gusdepKodeList } }, statusFilter as "AKTIF" | "NON_AKTIF", searchQuery);
             anggota = await prisma.anggota.findMany({
-                where: { gusdepKode: { in: gusdepKodeList } },
+                // where: { gusdepKode: { in: gusdepKodeList } },
+                where: whereClause,
                 include: { gugusDepan: { select: { nama_gusdep: true } } },
             });
 

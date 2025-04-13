@@ -94,7 +94,7 @@ export async function PATCH(req: NextRequest) {
         const role = session.user.role;
         let newFotoUrl: string | undefined = undefined;
 
-        if (foto && foto.size === 0) {
+        if (foto && foto.size > 0) {
             console.log("FOTO SIZE:", foto?.size);
 
             // validasi file

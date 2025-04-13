@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "Role" AS ENUM ('USER_SUPERADMIN', 'USER_KWARCAB', 'USER_KWARAN', 'USER_GUSDEP');
+
+-- CreateEnum
 CREATE TYPE "Gender" AS ENUM ('LAKI_LAKI', 'PEREMPUAN');
 
 -- CreateEnum
@@ -20,6 +23,19 @@ CREATE TYPE "Tingkat" AS ENUM ('SIAGA', 'PENGGALANG', 'PENEGAK', 'PANDEGA');
 CREATE TYPE "Status" AS ENUM ('DITERIMA', 'DITOLAK', 'MENUNGGU');
 
 -- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "username" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "role" "Role" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdById" TEXT,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Kwarcab" (
     "kode_kwarcab" TEXT NOT NULL,
     "nama_kwarcab" TEXT NOT NULL,
@@ -27,6 +43,7 @@ CREATE TABLE "Kwarcab" (
     "kepala_kwarcab" TEXT,
     "foto_kwarcab" TEXT,
     "userId" TEXT,
+    "createdById" TEXT,
 
     CONSTRAINT "Kwarcab_pkey" PRIMARY KEY ("kode_kwarcab")
 );
@@ -40,6 +57,7 @@ CREATE TABLE "Kwaran" (
     "foto_kwaran" TEXT,
     "kwarcabKode" TEXT NOT NULL,
     "userId" TEXT,
+    "createdById" TEXT,
 
     CONSTRAINT "Kwaran_pkey" PRIMARY KEY ("kode_kwaran")
 );
@@ -53,8 +71,9 @@ CREATE TABLE "GugusDepan" (
     "alamat" TEXT,
     "kepala_sekolah" TEXT,
     "foto_gusdep" TEXT,
-    "kwaranKode" TEXT NOT NULL,
+    "kwaranKode" TEXT,
     "userId" TEXT,
+    "createdById" TEXT,
 
     CONSTRAINT "GugusDepan_pkey" PRIMARY KEY ("kode_gusdep")
 );
@@ -65,6 +84,7 @@ CREATE TABLE "Anggota" (
     "nta" TEXT NOT NULL,
     "nama_agt" TEXT NOT NULL,
     "tgl_lahir" TIMESTAMP(3) NOT NULL,
+    "tahun_gabung" INTEGER,
     "gender" "Gender" NOT NULL,
     "agama" "Agama" NOT NULL,
     "alamat" TEXT NOT NULL,
@@ -99,9 +119,9 @@ CREATE TABLE "Kegiatan" (
     "tingkat_kegiatan" "Tingkat" NOT NULL,
     "laporan" TEXT NOT NULL,
     "tanggal" TIMESTAMP(3) NOT NULL,
-    "gusdepKode" TEXT NOT NULL,
-    "kwaranKode" TEXT NOT NULL,
-    "kwarcabKode" TEXT NOT NULL,
+    "gusdepKode" TEXT,
+    "kwaranKode" TEXT,
+    "kwarcabKode" TEXT,
 
     CONSTRAINT "Kegiatan_pkey" PRIMARY KEY ("id_kegiatan")
 );
@@ -130,10 +150,22 @@ CREATE TABLE "Ajuan" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Kwarcab_nama_kwarcab_key" ON "Kwarcab"("nama_kwarcab");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Kwarcab_userId_key" ON "Kwarcab"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Kwaran_nama_kwaran_key" ON "Kwaran"("nama_kwaran");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Kwaran_userId_key" ON "Kwaran"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GugusDepan_nama_gusdep_key" ON "GugusDepan"("nama_gusdep");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "GugusDepan_npsn_key" ON "GugusDepan"("npsn");
@@ -148,19 +180,31 @@ CREATE UNIQUE INDEX "Anggota_nta_key" ON "Anggota"("nta");
 CREATE UNIQUE INDEX "Pembina_nta_key" ON "Pembina"("nta");
 
 -- AddForeignKey
-ALTER TABLE "Kwarcab" ADD CONSTRAINT "Kwarcab_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "User" ADD CONSTRAINT "User_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Kwarcab" ADD CONSTRAINT "Kwarcab_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Kwarcab" ADD CONSTRAINT "Kwarcab_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Kwaran" ADD CONSTRAINT "Kwaran_kwarcabKode_fkey" FOREIGN KEY ("kwarcabKode") REFERENCES "Kwarcab"("kode_kwarcab") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Kwaran" ADD CONSTRAINT "Kwaran_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Kwaran" ADD CONSTRAINT "Kwaran_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Kwaran" ADD CONSTRAINT "Kwaran_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GugusDepan" ADD CONSTRAINT "GugusDepan_kwaranKode_fkey" FOREIGN KEY ("kwaranKode") REFERENCES "Kwaran"("kode_kwaran") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "GugusDepan" ADD CONSTRAINT "GugusDepan_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "GugusDepan" ADD CONSTRAINT "GugusDepan_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GugusDepan" ADD CONSTRAINT "GugusDepan_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Anggota" ADD CONSTRAINT "Anggota_gusdepKode_fkey" FOREIGN KEY ("gusdepKode") REFERENCES "GugusDepan"("kode_gusdep") ON DELETE CASCADE ON UPDATE CASCADE;

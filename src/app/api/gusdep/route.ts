@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
         select: {
             kode_gusdep: true,
             nama_gusdep: true,
+            alamat: true
         },
         });
 

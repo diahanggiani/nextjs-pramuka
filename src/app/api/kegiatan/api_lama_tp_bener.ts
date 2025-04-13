@@ -195,102 +195,12 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can retrieve activities" }, { status: 403 });
     }
 
-    // Parse the URL with custom format (multiple question marks)
-    const url = req.url;
-    
-    // Initialize parameters
-    let kode_kwaran: string | null = null;
-    let kode_gusdep: string | null = null;
-    let detail: string | null = null;
-    
-    // Handle URLs with question marks
-    if (url.includes('?')) {
-        // Handle custom URL format with multiple question marks
-        // Example: http://localhost:3000/api/kegiatan?kode_gusdep=56.789-01.234?detail=f5721f3b-d772-4bd3-b872-a1bc9a6a2b30
-        
-        const parts = url.split('?');
-        
-        // Process each part after the first question mark
-        for (let i = 1; i < parts.length; i++) {
-            const paramParts = parts[i].split('=');
-            if (paramParts.length === 2) {
-                const paramName = paramParts[0];
-                const paramValue = paramParts[1];
-                
-                if (paramName === 'kode_kwaran') {
-                    kode_kwaran = paramValue;
-                } else if (paramName === 'kode_gusdep') {
-                    kode_gusdep = paramValue;
-                } else if (paramName === 'detail') {
-                    detail = paramValue;
-                }
-            }
-        }
-    }
-
-    // If no parameters were found with custom parsing, try standard URL parsing as fallback
-    if (!kode_kwaran && !kode_gusdep && !detail) {
-        try {
-            const searchParams = new URL(url).searchParams;
-            kode_kwaran = searchParams.get('kode_kwaran');
-            kode_gusdep = searchParams.get('kode_gusdep');
-            detail = searchParams.get('detail');
-        } catch (error) {
-            console.error("Error parsing URL:", error);
-        }
-    }
+    const { searchParams } = new URL(req.url);
+    const kode_kwaran = searchParams.get("kode_kwaran");
+    const kode_gusdep = searchParams.get("kode_gusdep");
+    // const detail = searchParams.get("detail");
 
     try {
-        // Jika detail parameter ada, tampilkan detail kegiatan
-        if (detail) {
-            // cari kegiatan berdasarkan ID
-            const kegiatan = await prisma.kegiatan.findUnique({
-                where: { id_kegiatan: detail },
-                include: { partisipan: {
-                    include: { anggota: {
-                        select: {
-                            nta: true,
-                            nama_agt: true,
-                            jenjang_agt: true,
-                        },
-                    }}
-                }}
-            });
-
-            if (!kegiatan) {
-                return NextResponse.json({ message: "Activity not found" }, { status: 404 });
-            }
-
-            // validasi akses wilayah
-            const user = session.user;
-            const { kode_gusdep, kode_kwaran, kode_kwarcab } = user;
-
-            let isAllowed = false;
-
-            if (user.role === "USER_GUSDEP" && kode_gusdep === kegiatan.gusdepKode) {
-                isAllowed = true;
-                console.log("USER_GUSDEP: ", kode_gusdep, kegiatan.gusdepKode);
-            } else if (user.role === "USER_KWARAN") {
-                const gusdepList = await getGusdepKodeByRegion(kode_kwaran!, true);
-                isAllowed =
-                    kegiatan.kwaranKode === kode_kwaran ||
-                    (!!kegiatan.gusdepKode && gusdepList.includes(kegiatan.gusdepKode));
-            } else if (user.role === "USER_KWARCAB") {
-                const gusdepList = await getGusdepKodeByRegion(kode_kwarcab!, false);
-                isAllowed =
-                    kegiatan.kwarcabKode === kode_kwarcab ||
-                    (kegiatan.kwaranKode && kegiatan.kwaranKode.startsWith(kode_gusdep || "")) ||
-                    (!!kegiatan.gusdepKode && gusdepList.includes(kegiatan.gusdepKode));
-            }
-
-            if (!isAllowed) {
-                return NextResponse.json({ message: "You do not have permission to view this activity" }, { status: 403 });
-            }
-
-            return NextResponse.json(kegiatan);
-        }
-
-        // Kode yang sudah ada untuk menampilkan daftar kegiatan
         const whereClause: Prisma.KegiatanWhereInput = {};
 
         // Validasi akses berdasarkan query
@@ -344,7 +254,6 @@ export async function GET(req: NextRequest) {
         const kegiatanList = await prisma.kegiatan.findMany({
             where: whereClause,
             select: {
-                id_kegiatan: true, // Add this to allow linking to detail page
                 nama_kegiatan: true,
                 lokasi: true,
                 tanggal: true,
