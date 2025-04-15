@@ -102,19 +102,20 @@ model GugusDepan {
 }
 
 model Anggota {
-  id_anggota   String          @id @default(uuid())
-  nta          String          @unique
-  nama_agt     String
-  tgl_lahir    DateTime
-  tahun_gabung Int?
-  gender       Gender
-  agama        Agama
-  alamat       String
-  status_agt   StatusKeaktifan
-  jenjang_agt  JenjangAnggota
-  gusdepKode   String
-  gugusDepan   GugusDepan      @relation(fields: [gusdepKode], references: [kode_gusdep], onUpdate: Cascade, onDelete: Cascade)
-  partisipan   Partisipan[]
+  id_anggota     String           @id @default(uuid())
+  nta            String           @unique
+  nama_agt       String
+  tgl_lahir      DateTime
+  tahun_gabung   Int?
+  gender         Gender
+  agama          Agama
+  alamat         String
+  status_agt     StatusKeaktifan
+  jenjang_agt    JenjangAnggota?
+  gusdepKode     String
+  gugusDepan     GugusDepan       @relation(fields: [gusdepKode], references: [kode_gusdep], onUpdate: Cascade, onDelete: Cascade)
+  partisipan     Partisipan[]
+  RiwayatJenjang RiwayatJenjang[]
 }
 
 model Pembina {
@@ -157,12 +158,20 @@ model Partisipan {
   @@id([anggotaId, kegiatanId])
 }
 
+model RiwayatJenjang {
+  id_riwayat    String         @id @default(uuid())
+  anggotaId     String
+  anggota       Anggota        @relation(fields: [anggotaId], references: [id_anggota], onUpdate: Cascade, onDelete: Cascade)
+  jenjang_agt   JenjangAnggota
+  tgl_perubahan DateTime
+}
+
 model Ajuan {
   id_ajuan    String     @id @default(uuid())
   nama_ajuan  String
   tingkat     Tingkat
   formulir    String     @db.Text
-  status      Status?
+  status      Status?    @default(MENUNGGU)
   nta         String?
   gusdepKode  String
   gugusDepan  GugusDepan @relation(fields: [gusdepKode], references: [kode_gusdep], onUpdate: Cascade, onDelete: Cascade)

@@ -13,7 +13,7 @@ import path from "path";
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
 
 // handler untuk lihat detail data kegiatan
-export async function GET(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
     console.log("SESSION DEBUG:", session);
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, context: { params: Promise<Record<st
     }
 
     // id anggota dari parameter url
-    const { id } = await context.params;
+    const { id } = await params;
 
     try {
         // cari kegiatan berdasarkan ID
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest, context: { params: Promise<Record<st
 }
 
 // handler untuk edit data kegiatan
-export async function PATCH(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
     console.log("SESSION DEBUG:", session);
@@ -91,7 +91,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
     }
 
     // id anggota dari parameter url
-    const { id } = await context.params;
+    const { id } = await params;
+
     try {
         const kegiatan = await prisma.kegiatan.findUnique({ where: { id_kegiatan: id } });
         if (!kegiatan) {
@@ -236,7 +237,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
 }
 
 // handler untuk hapus data kegiatan
-export async function DELETE(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
     console.log("SESSION DEBUG:", session);
@@ -249,7 +250,8 @@ export async function DELETE(req: NextRequest, context: { params: Promise<Record
     }
 
     // id anggota dari parameter url
-    const { id } = await context.params;
+    const { id } = await params;
+
     try {
         const kegiatan = await prisma.kegiatan.findUnique({ where: { id_kegiatan: id }, });
 

@@ -89,7 +89,7 @@ CREATE TABLE "Anggota" (
     "agama" "Agama" NOT NULL,
     "alamat" TEXT NOT NULL,
     "status_agt" "StatusKeaktifan" NOT NULL,
-    "jenjang_agt" "JenjangAnggota" NOT NULL,
+    "jenjang_agt" "JenjangAnggota",
     "gusdepKode" TEXT NOT NULL,
 
     CONSTRAINT "Anggota_pkey" PRIMARY KEY ("id_anggota")
@@ -135,12 +135,22 @@ CREATE TABLE "Partisipan" (
 );
 
 -- CreateTable
+CREATE TABLE "RiwayatJenjang" (
+    "id_riwayat" TEXT NOT NULL,
+    "anggotaId" TEXT NOT NULL,
+    "jenjang_agt" "JenjangAnggota" NOT NULL,
+    "tgl_perubahan" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RiwayatJenjang_pkey" PRIMARY KEY ("id_riwayat")
+);
+
+-- CreateTable
 CREATE TABLE "Ajuan" (
     "id_ajuan" TEXT NOT NULL,
     "nama_ajuan" TEXT NOT NULL,
     "tingkat" "Tingkat" NOT NULL,
     "formulir" TEXT NOT NULL,
-    "status" "Status",
+    "status" "Status" DEFAULT 'MENUNGGU',
     "nta" TEXT,
     "gusdepKode" TEXT NOT NULL,
     "kwarcabKode" TEXT NOT NULL,
@@ -226,6 +236,9 @@ ALTER TABLE "Partisipan" ADD CONSTRAINT "Partisipan_anggotaId_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "Partisipan" ADD CONSTRAINT "Partisipan_kegiatanId_fkey" FOREIGN KEY ("kegiatanId") REFERENCES "Kegiatan"("id_kegiatan") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RiwayatJenjang" ADD CONSTRAINT "RiwayatJenjang_anggotaId_fkey" FOREIGN KEY ("anggotaId") REFERENCES "Anggota"("id_anggota") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Ajuan" ADD CONSTRAINT "Ajuan_gusdepKode_fkey" FOREIGN KEY ("gusdepKode") REFERENCES "GugusDepan"("kode_gusdep") ON DELETE CASCADE ON UPDATE CASCADE;

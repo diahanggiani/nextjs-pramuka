@@ -35,7 +35,7 @@
 - hapus seluruh folder migrations(?)
 - npx prisma migrate reset
 - npx prisma generate
-- npx prisma migrate dev --name init-migration
+- npx prisma migrate dev --name init
 - npx tsx prisma/seed.ts
 
 **format penulisan skema**

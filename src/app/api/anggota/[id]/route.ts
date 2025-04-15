@@ -8,7 +8,8 @@ import { isValidEnum } from "@/lib/helpers/enumValidator";
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
 
 // handler untuk tambah data anggota oleh role gusdep
-export async function PATCH(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
+// export async function PATCH(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
     console.log("SESSION DEBUG:", session);
@@ -21,7 +22,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
     }
 
     // id anggota dari parameter url
-    const { id } = await context.params;
+    // const { id } = await context.params;
+    const { id } = await params;
 
     try {
         const body = await req.json();
@@ -51,7 +53,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
         }
 
         // validasi enum
-        const { gender, agama, status_agt, jenjang_agt } = body;
+        // const { gender, agama, status_agt, jenjang_agt } = body;
+        const { gender, agama, status_agt } = body;
         
         if (gender && !isValidEnum("Gender", gender)) {
             return NextResponse.json({ message: "Invalid gender" }, { status: 400 });
@@ -62,9 +65,9 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
         if (status_agt && !isValidEnum("StatusKeaktifan", status_agt)) {
             return NextResponse.json({ message: "Invalid status keaktifan" }, { status: 400 });
         }
-        if (jenjang_agt && !isValidEnum("JenjangAnggota", jenjang_agt)) {
-            return NextResponse.json({ message: "Invalid jenjang anggota" }, { status: 400 });
-        }
+        // if (jenjang_agt && !isValidEnum("JenjangAnggota", jenjang_agt)) {
+        //     return NextResponse.json({ message: "Invalid jenjang anggota" }, { status: 400 });
+        // }
 
         // update data anggota hanya jika field ada dalam request body
         const updatedAnggota = await prisma.anggota.update({
@@ -76,7 +79,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
                 ...(body.tgl_lahir && { tgl_lahir: new Date(body.tgl_lahir) }),
                 ...(body.gender && { gender: body.gender }),
                 ...(body.agama && { agama: body.agama }),
-                ...(body.jenjang_agt && { jenjang_agt: body.jenjang_agt }),
+                // ...(body.jenjang_agt && { jenjang_agt: body.jenjang_agt }),
                 ...(body.status_agt && { status_agt: body.status_agt }),
                 ...(body.tahun_gabung && !isNaN(parseInt(body.tahun_gabung)) && { tahun_gabung: parseInt(body.tahun_gabung) }),
             },
@@ -90,7 +93,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
 }
 
 // handler untuk hapus data anggota oleh role gusdep
-export async function DELETE(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
     console.log("SESSION DEBUG:", session);
@@ -103,7 +106,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<Record
     }
 
     const user = session.user as { id: string; role: string; kode_gusdep: string };
-    const { id } = await context.params;
+    const { id } = await params;
 
     try {
         // ambil data anggota berdasarkan id

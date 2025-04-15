@@ -10,7 +10,8 @@ import { isValidEnum } from "@/lib/helpers/enumValidator";
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
 
 // handler untuk mengedit data ajuan oleh user kwarcab
-export async function PATCH(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
+// export async function PATCH(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
     console.log("SESSION DEBUG:", session);
@@ -23,7 +24,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
     }
   
     // id anggota dari parameter url
-    const { id } = await context.params;
+    // const { id } = await context.params;
+    const { id } = await params;
 
     try {
         const ajuan = await prisma.ajuan.findUnique({ where: { id_ajuan: id } });
@@ -82,7 +84,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
 }
 
 // handler untuk mengedit data ajuan oleh user kwarcab
-export async function DELETE(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
     console.log("SESSION DEBUG:", session);
@@ -95,7 +97,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<Record
     }
   
     // id anggota dari parameter url
-    const { id } = await context.params;
+    const { id } = await params;
 
     try {
         const ajuan = await prisma.ajuan.findUnique({ where: { id_ajuan: id } });
