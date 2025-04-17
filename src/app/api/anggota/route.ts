@@ -131,6 +131,7 @@ export async function GET(req: NextRequest) {
 
             // mapping untuk ambil jenjang terbaru dari RiwayatJenjang
             return anggota.map((agt) => ({
+                id_anggota: agt.id_anggota,
                 nama_agt: agt.nama_agt,
                 nta: agt.nta,
                 tgl_lahir: agt.tgl_lahir,

@@ -10,7 +10,6 @@ import { isValidEnum } from "@/lib/helpers/enumValidator";
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
 
 // handler untuk mengedit data ajuan oleh user kwarcab
-// export async function PATCH(req: NextRequest, context: { params: Promise<Record<string, string>> }) {
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
     // keperluan testing (nanti dihapus)
     const session = await getSessionOrToken(req);
@@ -24,7 +23,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   
     // id anggota dari parameter url
-    // const { id } = await context.params;
     const { id } = await params;
 
     try {
