@@ -34,6 +34,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Username cannot contain spaces" }, { status: 400 });
         }
 
+        if (!/^\S+$/.test(kode)) {
+            return NextResponse.json({ message: 'Kode cannot contain spaces' }, { status: 400 });
+        }
+
         if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password)) {
             return NextResponse.json({
                 message: "Password must be at least 8 characters long, contain uppercase, lowercase letters, and numbers."

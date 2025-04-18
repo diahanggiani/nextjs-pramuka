@@ -31,19 +31,62 @@ export async function GET(req: NextRequest) {
       whereClause.gugusDepan = { kwaran: { kwarcabKode: session.user.kode_kwarcab } };
     }
 
-    const grouped = await prisma.anggota.groupBy({
-      by: ["gender"],
-      _count: { id_anggota: true },
-      orderBy: { gender: "asc" },
-      where: {
-        ...whereClause, // Tambahkan whereClause untuk pembatasan wilayah
-      },
+    const anggota = await prisma.anggota.findMany({
+      where: whereClause,
+      select: {
+        gender: true,
+        gugusDepan: {
+          select: {
+            nama_gusdep: true,
+            kwaran: {
+              select: {
+                nama_kwaran: true,
+              }
+            }
+          }
+        }
+      }
     });
 
-    const data = grouped.map((item) => ({
-      gender: item.gender,
-      jumlah: item._count.id_anggota,
-    }));
+    let data: Record<string, number> | Record<string, Record<string, number>> = {};
+    // gender : jumlah | kwaran/gusdep → gender → jumlah
+
+
+    if (session.user.role === "USER_GUSDEP") {
+      // gender count only
+      data = anggota.reduce((acc: Record<string, number>, item) => {
+        acc[item.gender] = (acc[item.gender] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    else if (session.user.role === "USER_KWARAN") {
+      // group by gusdep → gender
+      data = anggota.reduce((acc: Record<string, Record<string, number>>, item) => {
+        // const gd = item.gusdepKode;
+        const namaGusdep = item.gugusDepan?.nama_gusdep || "Tidak diketahui";
+        const gender = item.gender;
+
+        if (!acc[namaGusdep]) acc[namaGusdep] = {};
+        acc[namaGusdep][gender] = (acc[namaGusdep][gender] || 0) + 1;
+
+        return acc;
+      }, {});
+    }
+
+    else if (session.user.role === "USER_KWARCAB") {
+      // group by kwaran → gender
+      data = anggota.reduce((acc: Record<string, Record<string, number>>, item) => {
+        // const kwaran = item.gugusDepan?.kwaranKode;
+        const namaKwaran = item.gugusDepan?.kwaran?.nama_kwaran || "Tidak diketahui";
+        const gender = item.gender;
+
+        if (!acc[namaKwaran]) acc[namaKwaran] = {};
+        acc[namaKwaran][gender] = (acc[namaKwaran][gender] || 0) + 1;
+
+        return acc;
+      }, {});
+    }
 
     return NextResponse.json(data);
   } catch (error) {

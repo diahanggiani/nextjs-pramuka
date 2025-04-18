@@ -98,25 +98,14 @@ export async function POST(req: NextRequest) {
 
         const url = publicUrlData?.publicUrl;
 
-        // // simpan data ajuan
-        // const newAjuan = await prisma.ajuan.create({
-        //     data: {
-        //         nama_ajuan,
-        //         tingkat,
-        //         formulir: url,
-        //         gusdepKode: session.user.kode_gusdep!,
-        //         kwarcabKode: session.user.kode_kwarcab!,
-        //     },
-        // });
-
         // Simpan data ajuan
         const newAjuan = await prisma.ajuan.create({
             data: {
                 nama_ajuan,
                 tingkat,
                 formulir: url,
-                gusdepKode: session.user.kode_gusdep!,// Mendapatkan kode_gusdep dari session
-                kwarcabKode: kode_kwarcab, // Menggunakan kode_kwarcab yang ditemukan
+                gusdepKode: session.user.kode_gusdep!,// ambil kode_gusdep dari session
+                kwarcabKode: kode_kwarcab, // pake kode_kwarcab yang ditemukan
             },
         });
           

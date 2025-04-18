@@ -344,7 +344,7 @@ export async function GET(req: NextRequest) {
         const kegiatanList = await prisma.kegiatan.findMany({
             where: whereClause,
             select: {
-                id_kegiatan: true, // Add this to allow linking to detail page
+                id_kegiatan: true, // to allow linking to detail page
                 nama_kegiatan: true,
                 lokasi: true,
                 tanggal: true,

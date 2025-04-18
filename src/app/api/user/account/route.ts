@@ -29,12 +29,17 @@ export async function POST(req: NextRequest) {
         if (!username || !password || !nama ||!kode) {
             return NextResponse.json({ message: 'All fields are required' }, { status: 400 });
         }
-  
+        
         const usernameRegex = /^\S+$/;
         if (!usernameRegex.test(username)) {
             return NextResponse.json({ message: 'Username cannot contain spaces' }, { status: 400 });
         }
   
+        const kodeRegex = /^\S+$/;
+        if (!kodeRegex.test(kode)) {
+            return NextResponse.json({ message: 'Kode cannot contain spaces' }, { status: 400 });
+        }
+
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
         if (!passwordRegex.test(password)) {
             return NextResponse.json({ message: 'Password must be at least 8 characters long, contain uppercase, lowercase letters, and numbers.' }, { status: 400 });

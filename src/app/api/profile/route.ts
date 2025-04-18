@@ -17,12 +17,56 @@ export async function GET(req: NextRequest) {
 
     // session yang asli (nanti uncomment)
     // const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role === "USER_SUPERADMIN") {
-        return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can see profile" }, { status: 403 });
-    }
 
     try {
+        const { searchParams } = new URL(req.url);
+        const kode_gusdep = searchParams.get("kode_gusdep");
+        const kode_kwaran = searchParams.get("kode_kwaran");
+        const kode_kwarcab = searchParams.get("kode_kwarcab");
+
+        if (kode_gusdep) {
+            const gusdep = await prisma.gugusDepan.findUnique({
+                where: { kode_gusdep },
+                select: {
+                    kode_gusdep: true, nama_gusdep: true, alamat: true, kepala_sekolah: true, npsn: true, nama_sekolah: true, foto_gusdep: true,
+                    kwaran: {
+                        select: { nama_kwaran: true }
+                    }
+                }
+            });
+            if (!gusdep) return NextResponse.json({ message: "Gugus depan not found" }, { status: 404 });
+            return NextResponse.json(gusdep, { status: 200 });
+        }
+
+        if (kode_kwaran) {
+            const kwaran = await prisma.kwaran.findUnique({
+                where: { kode_kwaran },
+                select: {
+                    kode_kwaran: true, nama_kwaran: true, alamat: true, foto_kwaran: true,
+                    kwarcab: {
+                        select: { nama_kwarcab: true }
+                    }
+                }
+            });
+            if (!kwaran) return NextResponse.json({ message: "Kwaran not found" }, { status: 404 });
+            return NextResponse.json(kwaran, { status: 200 });
+        }
+
+        if (kode_kwarcab) {
+            const kwarcab = await prisma.kwarcab.findUnique({
+                where: { kode_kwarcab },
+                select: {
+                    kode_kwarcab: true, nama_kwarcab: true, alamat: true, foto_kwarcab: true
+                }
+            });
+            if (!kwarcab) return NextResponse.json({ message: "Kwarcab not found" }, { status: 404 });
+            return NextResponse.json(kwarcab, { status: 200 });
+        }
+
+        if (!session || session.user.role === "USER_SUPERADMIN") {
+            return NextResponse.json({ message: "Unauthorized: Only 'Kwarcab/Kwaran/Gusdep' users can see profile" }, { status: 403 });
+        }
+        
         let profile;
 
         // cek role dan pastikan kode yang sesuai ada dalam token

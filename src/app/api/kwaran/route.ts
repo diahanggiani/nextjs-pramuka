@@ -21,9 +21,7 @@ export async function GET(req: NextRequest) {
         const kodeKwarcab = session.user.kode_kwarcab;
 
         const listKwaran = await prisma.kwaran.findMany({
-            where: {
-                kwarcabKode: kodeKwarcab,
-            },
+            where: { kwarcabKode: kodeKwarcab },
             select: {
                 kode_kwaran: true,
                 nama_kwaran: true,

@@ -20,7 +20,12 @@ export async function GET(req: NextRequest) {
 
     try {
         const { searchParams } = new URL(req.url);
-        const kode_kwaran = searchParams.get("kode_kwaran");
+        let kode_kwaran = searchParams.get("kode_kwaran");
+
+        // kalau tidak ada query param, dan user_kwaran, pakai dari session
+        if (!kode_kwaran && session.user.role === "USER_KWARAN") {
+            kode_kwaran = session.user.kode_kwaran ?? null;
+        }
 
         if (!kode_kwaran) {
             return NextResponse.json({ message: "kode_kwaran query param is required" }, { status: 400 });
@@ -44,12 +49,16 @@ export async function GET(req: NextRequest) {
         }
 
         const gusdepList = await prisma.gugusDepan.findMany({
-        where: { kwaranKode: kode_kwaran },
-        select: {
-            kode_gusdep: true,
-            nama_gusdep: true,
-            alamat: true
-        },
+            where: { kwaranKode: kode_kwaran },
+                select: {
+                    kode_gusdep: true,
+                    nama_gusdep: true,
+                    alamat: true,
+                    foto_gusdep: true,
+                    kwaran: {
+                        select: { nama_kwaran: true }
+                    }
+                },
         });
 
     return NextResponse.json(gusdepList);

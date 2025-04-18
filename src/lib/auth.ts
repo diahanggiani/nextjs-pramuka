@@ -1,13 +1,3 @@
-/**
-config utama NextAuth untuk setup:
-- provider (CredentialsProvider)
-- logic login (authorize)
-- adapter ke Prisma
-- session strategy (jwt)
-- custom callback (jwt, session)
-- halaman login custom (signIn)
-*/
-
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
