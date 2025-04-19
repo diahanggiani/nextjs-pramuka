@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
     }
 
     const jenjangGroups = {
-        siaga: ["SIAGA_MULA", "SIAGA_BANTU", "SIAGA_TATA"],
-        penggalang: ["PENGGALANG_RAMU", "PENGGALANG_RAKIT", "PENGGALANG_TERAP"],
-        penegak: ["PENEGAK_BANTARA", "PENEGAK_LAKSANA"],
-        pandega: ["PANDEGA"],
+        SIAGA: ["SIAGA_MULA", "SIAGA_BANTU", "SIAGA_TATA"],
+        PENGGALANG: ["PENGGALANG_RAMU", "PENGGALANG_RAKIT", "PENGGALANG_TERAP"],
+        PENEGAK: ["PENEGAK_BANTARA", "PENEGAK_LAKSANA"],
+        PANDEGA: ["PANDEGA"],
     };
 
     
@@ -37,19 +37,33 @@ export async function GET(req: NextRequest) {
         const kwaranList = await prisma.kwaran.findMany({
             where: { kwarcabKode: session.user.kode_kwarcab },
             select: { kode_kwaran: true, nama_kwaran: true }
-        })
+        });
+
+        console.log("Kwaran List:", kwaranList);  // cek list kwaran
 
         const result = await Promise.all(
             kwaranList.map(async (kwaran) => {
+                // semua gusdep yang ada di bawah kwaran ini
+                const gugusDepanList = await prisma.gugusDepan.findMany({
+                    where: { kwaranKode: kwaran.kode_kwaran },
+                    select: { kode_gusdep: true }
+                });
+
+                console.log(`Gugus Depan for Kwaran ${kwaran.nama_kwaran}:`, gugusDepanList);  // cek list gusdep
+
+                // semua anggota yang terdaftar di tiap gusdep
                 const anggota = await prisma.anggota.findMany({
                     where: {
-                        gugusDepan: { kwaranKode: kwaran.kode_kwaran }
+                        gusdepKode: { in: gugusDepanList.map(gd => gd.kode_gusdep) }
                     },
                     select: { jenjang_agt: true }
-                })
+                });
+
+                console.log(`Anggota for Kwaran ${kwaran.nama_kwaran}:`, anggota);  // cek data anggota
 
                 const countPerJenjang: Record<string, number> = { SIAGA: 0, PENGGALANG: 0, PENEGAK: 0, PANDEGA: 0 };
 
+                // total anggota tiap kwaran
                 for (const a of anggota) {
                     if (!a.jenjang_agt) continue; // skip jika anggota tidak memiliki jenjang atau null
 
@@ -60,9 +74,9 @@ export async function GET(req: NextRequest) {
                 return {
                     kwaran: kwaran.nama_kwaran,
                     ...countPerJenjang,
-                }
+                };
             })
-        )
+        );
 
         return NextResponse.json(result);
     } catch (error) {

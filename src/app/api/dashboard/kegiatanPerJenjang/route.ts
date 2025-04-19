@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { Tingkat } from "@prisma/client";
 
 // keperluan testing (nanti dihapus)
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
-import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
     // keperluan testing (nanti dihapus)
@@ -18,39 +18,70 @@ export async function GET(req: NextRequest) {
     if (!session || !["USER_KWARCAB", "USER_KWARAN"].includes(session.user.role)) {
         return NextResponse.json({ message: "Unauthorized: Only 'Kwaran' & 'Kwarcab' users can access this data" }, { status: 403 });
     }
-
+    
     try {
-        const whereClause: Prisma.KegiatanWhereInput = {};
+        const result = {
+          kegiatan_gusdep: { SIAGA: 0, PENGGALANG: 0, PENEGAK: 0, PANDEGA: 0 },
+          kegiatan_kwaran: { SIAGA: 0, PENGGALANG: 0, PENEGAK: 0, PANDEGA: 0 },
+        };
+    
+        let kegiatanList: {
+            tingkat_kegiatan: Tingkat | null,
+            gusdepKode: string | null,
+            kwaranKode: string | null
+        }[] = [];
     
         if (session.user.role === "USER_KWARAN") {
-            whereClause["gugusDepan"] = { kwaranKode: session.user.kode_kwaran };
+            kegiatanList = await prisma.kegiatan.findMany({
+                where: {
+                    OR: [
+                        { gugusDepan: { kwaranKode: session.user.kode_kwaran } },
+                        { kwaranKode: session.user.kode_kwaran },
+                    ]
+                },
+                select: {
+                    tingkat_kegiatan: true,
+                    gusdepKode: true,
+                    kwaranKode: true,
+                },
+            });
+
         } else if (session.user.role === "USER_KWARCAB") {
-            // jika role USER_KWARCAB, ambil semua kegiatan dari gusdep dan kwaran di bawah kwarcab
-        }
-    
-        const kegiatanList = await prisma.kegiatan.findMany({
-            where: whereClause,
-            select: { tingkat_kegiatan: true, gugusDepan: { select: { kwaranKode: true } } }
-        });
-    
-        const result = {
-            kegiatan_gusdep: { SIAGA: 0, PENGGALANG: 0, PENEGAK: 0, PANDEGA: 0 },
-            kegiatan_kwaran: { SIAGA: 0, PENGGALANG: 0, PENEGAK: 0, PANDEGA: 0 },
-        };
+            const kwaranList = await prisma.kwaran.findMany({
+                where: { kwarcabKode: session.user.kode_kwarcab },
+                select: { kode_kwaran: true },
+            });
+            const kodeKwaranList = kwaranList.map(k => k.kode_kwaran);
+        
+            const gusdepList = await prisma.gugusDepan.findMany({
+                where: { kwaranKode: { in: kodeKwaranList } },
+                select: { kode_gusdep: true },
+            });
+            const kodeGusdepList = gusdepList.map(g => g.kode_gusdep);
+        
+            kegiatanList = await prisma.kegiatan.findMany({
+                where: {
+                    OR: [
+                        { gusdepKode: { in: kodeGusdepList } },
+                        { kwaranKode: { in: kodeKwaranList } },
+                    ]
+                },
+                select: {
+                    tingkat_kegiatan: true,
+                    gusdepKode: true,
+                    kwaranKode: true,
+                }
+            })
+            }
     
         for (const kegiatan of kegiatanList) {
             const jenjang = kegiatan.tingkat_kegiatan;
+            if (!jenjang) continue;
         
-            if (jenjang) {
-                if (kegiatan.gugusDepan) {
-                    // validasi apakah kegiatan milik gusdep atau kwaran
-                    if (session.user.role === "USER_KWARCAB") {
-                        result.kegiatan_gusdep[jenjang]++;
-                        result.kegiatan_kwaran[jenjang]++;
-                    } else if (session.user.role === "USER_KWARAN") {
-                        result.kegiatan_gusdep[jenjang]++;
-                    }
-                }
+            if (kegiatan.gusdepKode) {
+                result.kegiatan_gusdep[jenjang]++;
+            } else if (kegiatan.kwaranKode) {
+                result.kegiatan_kwaran[jenjang]++;
             }
         }
     

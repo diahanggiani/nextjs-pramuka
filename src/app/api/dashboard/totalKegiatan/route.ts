@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 
 // keperluan testing (nanti dihapus)
 import { getSessionOrToken } from "@/lib/getSessionOrToken";
+import { getGusdepKodeByRegion } from "@/lib/helpers/getGusdep";
 
 export async function GET(req: NextRequest) {
   // keperluan testing (nanti dihapus)
@@ -27,19 +28,19 @@ export async function GET(req: NextRequest) {
     let result: chartItem[] = [];
 
     if (session.user.role === "USER_KWARCAB") {
+      if (!session.user.kode_kwarcab) {
+        return NextResponse.json({ message: "Missing kwarcab code in session" }, { status: 400 });
+      }
+
+      // ambil semua gusdep di bawah kwaran-kwaran tersebut
+      const kodeGusdepList = await getGusdepKodeByRegion(session.user.kode_kwarcab, false);
+      
       // ambil semua kwaran di bawah kwarcab
       const kwaranList = await prisma.kwaran.findMany({
         where: { kwarcabKode: session.user.kode_kwarcab },
         select: { kode_kwaran: true }
       });
       const kodeKwaranList = kwaranList.map((k) => k.kode_kwaran);
-
-      // ambil semua gusdep di bawah kwaran-kwaran tersebut
-      const gusdepList = await prisma.gugusDepan.findMany({
-        where: { kwaranKode: { in: kodeKwaranList } },
-        select: { kode_gusdep: true }
-      });
-      const kodeGusdepList = gusdepList.map((g) => g.kode_gusdep);
 
       // total kegiatan dari gusdep
       const totalFromGusdep = await prisma.kegiatan.count({
@@ -57,12 +58,12 @@ export async function GET(req: NextRequest) {
       ];
 
     } else if (session.user.role === "USER_KWARAN") {
+      if (!session.user.kode_kwaran) {
+        return NextResponse.json({ message: "Missing kwaran code in session" }, { status: 400 });
+      }
+      
       // ambil semua gusdep di bawah kwaran
-      const gusdepList = await prisma.gugusDepan.findMany({
-        where: { kwaranKode: session.user.kode_kwaran },
-        select: { kode_gusdep: true }
-      });
-      const kodeGusdepList = gusdepList.map((g) => g.kode_gusdep);
+      const kodeGusdepList = await getGusdepKodeByRegion(session.user.kode_kwaran, true);
 
       // total kegiatan dari semua gusdep
       const total = await prisma.kegiatan.count({
